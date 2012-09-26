@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>knockout.model demo</title>
+        <meta charset="UTF-8"/>
+        <style type="text/css">
+            body { font: 14px "Segoe UI", Verdana, Helvetica, Sans-Serif; }
+        </style>
+    </head>    
+    <body>
+        <h1>knockout.model demo</h1>
+
+        <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.2.min.js" type="text/javascript"></script>
+        <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.1.0.js" type="text/javascript"></script>
+        <script type="text/javascript">
+            ko.ViewModel = function (definition) {
+                var observables = definition['observables'],
+                    subscriptions = definition['subscriptions'],
+                    propertyName,
+                    propertyValue,
+                    Model;
+                
+                // Build the model constructor function.
+                Model = function () {
+                    var self = this;
+                    
+                    // Add observable values, observable arrays, and computed properties to this.
+                    for (propertyName in observables) {
+                        propertyValue = observables[propertyName];
+                        if (typeof propertyValue === 'function') {
+                            self[propertyName] = ko.computed(propertyValue);
+                        } else if ($.isArray(propertyValue)) {
+                            self[propertyName] = ko.observableArray(propertyValue);
+                        } else {
+                            self[propertyName] = ko.observable(propertyValue);
+                        }
+                    }
+
+                    // Add property change subscriptions to this.
+                    for (propertyName in subscriptions) {
+                        propertyValue = subscriptions[propertyName];
+                        self[propertyName].subscribe(function (value) {
+                            subscriptions[propertyName].call(self, value);
+                        });
+                    }
+
+                    // Apply the ctor function to this.
+                    definition.ctor.apply(this, arguments);
+                };
+                
+                // Add any ad-hoc functions in the definition to the model's prototype.
+                for (propertyName in definition) {
+                    propertyValue = definition[propertyName];
+                    if (typeof propertyValue === 'function') {
+                        Model.prototype[propertyName] = propertyValue;
+                    }
+                }
+
+                // Return the model ctor!
+                return Model;
+            };
+
+            var Model = ko.ViewModel({
+                ctor: function (data, name) {
+                    this.sourceData = data;
+                    this.sourceName = name;
+                    this.array([data, name]);
+                },
+                
+                observables: {
+                    value: null,
+                    array: [],
+                    computed: function () {
+                        return 'compute me!';
+                    }
+                },
+
+                subscriptions: {
+                    value: function(newValue) {
+                        alert(this.sourceData + ' ' + newValue);
+                    }
+                },
+
+                function1: function () {
+                    alert(this.sourceData);
+                },
+
+                function2: function () {
+                    console.log(this.sourceData);
+                }
+            });
+
+            var model = new Model('hello', 'you');
+        </script>
+    </body>
+</html>
